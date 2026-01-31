@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler"
 import TaskModel from "../../models/tasks/taskModel"
 
+// Create new Task
 export const createTask = asyncHandler(async (req, res) => {
     try {
         const { title, description, dueDate, priority, status } = req.body
@@ -32,6 +33,7 @@ export const createTask = asyncHandler(async (req, res) => {
     }
 })
 
+// Get All tasks at once
 export const getTasks = asyncHandler(async (req, res) => {
 
     try {
@@ -50,6 +52,7 @@ export const getTasks = asyncHandler(async (req, res) => {
     }
 })
 
+// Get One Task
 export const getTask = asyncHandler(async (req, res) => {
 
     try {
@@ -61,6 +64,78 @@ export const getTask = asyncHandler(async (req, res) => {
         }
 
         const task = await TaskModel.findById(id)
+        if (!task) {
+            res.status(404).json({ message: "Task not found.!" })
+        }
+        if (!task.user.equals(userId)) {
+            res.status(401).json({ message: "Not Authorized!" })
+        }
+
+        res.status(200).json(task)
+    } catch (error) {
+        console.log("Error in getTask", error.message)
+        res.status(500).json({ message: error.message })
+    }
+})
+
+// Update the task
+export const updateTask = asyncHandler(async (req, res) => {
+    try {
+        const userId = req.user._id
+        const { id } = req.params
+        // data sent from USer onnput from the body
+        const { title, description, dueDate, priority, status, completed } = req.body
+
+        if (!id) {
+            res.status(400).json({ message: "Please provide a task ID" })
+        }
+        const task = await TaskModel.findById(id)
+
+        if (!task) {
+            res.status(404).json({ message: "Task not Found." })
+        }
+
+        // Check if the User is the owner of the Task.
+        if (!task.user.equals(userId)) {
+            res.status(401).json({ message: "Not authorized.!" })
+        }
+
+        // Update the task with the new data if provided or keep the old data
+        task.title = title || task.title
+        task.description = description || task.description
+        task.dueDate = dueDate || task.dueDate
+        task.priority = priority || task.priority
+        task.status = status || task.status
+        task.completed = completed || task.completed
+
+        await task.save()
+
+        return res.status(200).json(task)
+
+    } catch (error) {
+        console.log("Error in updateTask", error.message)
+        res.status(500).json({ message: error.message })
+    }
+})
+
+
+//Delete Task
+export const deleteTask = asyncHandler(async (req, res) => {
+    try {
+        const userId = req.user._id
+        const { id } = req.params
+
+        const task = await TaskModel.findById(id)
+
+        if (!task) {
+            res.status(404).json({ message: "Task not found.!" })
+        }
+
+        // Check IF the user is the owner of the task
+        if (!task.user.equals(userId)) {
+            res.status(401).json({ message: "Not Autorized.!" })
+        }
+
     } catch (error) {
         
     }
